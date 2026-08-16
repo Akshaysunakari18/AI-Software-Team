@@ -1,5 +1,10 @@
 from agents.manager_agent import ManagerAgent
+from agents.github_agent import GitHubAgent
 
+
+# ==========================================
+# PROJECT REQUIREMENT
+# ==========================================
 
 requirement = """
 Create a Python calculator with four functions:
@@ -19,22 +24,62 @@ Requirements:
 """
 
 
+# ==========================================
+# START AI SOFTWARE TEAM
+# ==========================================
+
 print("\n================================")
-print("     AI SOFTWARE TEAM")
+print("       AI SOFTWARE TEAM")
 print("================================")
 
+
+# ==========================================
+# MANAGER AGENT
+# ==========================================
 
 manager = ManagerAgent()
 
 result = manager.run(requirement)
 
 
+# ==========================================
+# IF TESTS PASS → GITHUB
+# ==========================================
+
 if result["success"]:
 
-    print("\n🎉 Manager Agent says:")
+    print("\n🎉 Manager Agent:")
     print("PROJECT IS READY FOR GITHUB.")
+
+    print("\nSending approved project to GitHub Agent...")
+
+    github_agent = GitHubAgent()
+
+    github_success = github_agent.push_changes()
+
+    if github_success:
+
+        print("\n================================")
+        print("       🚀 DEPLOYMENT COMPLETE")
+        print("================================")
+
+        print("\nProject successfully pushed to:")
+        print("GitHub → developer branch")
+
+    else:
+
+        print("\n❌ GitHub push failed.")
 
 else:
 
-    print("\n⚠️ Manager Agent says:")
-    print("PROJECT NEEDS MORE WORK.")
+    print("\n================================")
+    print("       ❌ PROJECT REJECTED")
+    print("================================")
+
+    print("\nThe project was NOT pushed to GitHub.")
+    print("The tests must pass before GitHub upload.")
+
+
+print("\n================================")
+print("          TEAM FINISHED")
+print("================================")
