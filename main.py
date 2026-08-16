@@ -3,34 +3,28 @@ from agents.github_agent import GitHubAgent
 
 
 # ==========================================
-# PROJECT REQUIREMENT
-# ==========================================
-
-requirement = """
-Create a Python calculator with four functions:
-
-1. add(a, b)
-2. subtract(a, b)
-3. multiply(a, b)
-4. divide(a, b)
-
-Requirements:
-
-- add(a, b) returns the sum.
-- subtract(a, b) returns the difference.
-- multiply(a, b) returns the product.
-- divide(a, b) returns the division result.
-- divide(a, b) MUST raise ValueError when b is zero.
-"""
-
-
-# ==========================================
-# START AI SOFTWARE TEAM
+# GET REQUIREMENT FROM USER
 # ==========================================
 
 print("\n================================")
 print("       AI SOFTWARE TEAM")
 print("================================")
+
+print("\nEnter your software requirement.")
+print("Example:")
+print("Build a Python student marks management system.")
+
+requirement = input("\nRequirement: ").strip()
+
+
+# ==========================================
+# VALIDATE REQUIREMENT
+# ==========================================
+
+if not requirement:
+
+    print("\n❌ Requirement cannot be empty.")
+    raise SystemExit
 
 
 # ==========================================
@@ -43,13 +37,14 @@ result = manager.run(requirement)
 
 
 # ==========================================
-# IF TESTS PASS → GITHUB
+# PROJECT APPROVED
 # ==========================================
 
 if result["success"]:
 
-    print("\n🎉 Manager Agent:")
-    print("PROJECT IS READY FOR GITHUB.")
+    print("\n================================")
+    print("       ✅ PROJECT APPROVED")
+    print("================================")
 
     print("\nSending approved project to GitHub Agent...")
 
@@ -60,7 +55,7 @@ if result["success"]:
     if github_success:
 
         print("\n================================")
-        print("       🚀 DEPLOYMENT COMPLETE")
+        print("       🚀 PROJECT COMPLETE")
         print("================================")
 
         print("\nProject successfully pushed to:")
@@ -70,6 +65,10 @@ if result["success"]:
 
         print("\n❌ GitHub push failed.")
 
+# ==========================================
+# PROJECT REJECTED
+# ==========================================
+
 else:
 
     print("\n================================")
@@ -77,7 +76,11 @@ else:
     print("================================")
 
     print("\nThe project was NOT pushed to GitHub.")
-    print("The tests must pass before GitHub upload.")
+
+    print(
+        "The Coding Agent must fix the project "
+        "until the tests pass."
+    )
 
 
 print("\n================================")

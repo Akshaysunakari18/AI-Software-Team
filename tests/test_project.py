@@ -1,4 +1,5 @@
 import pytest
+
 from workspace.calculator import *
 
 def test_add():
@@ -24,3 +25,5 @@ def test_divide():
         divide(1, 0)
     with pytest.raises(ValueError):
         divide(-1, 0)
+    with pytest.raises(ValueError):
+        divide(0, 0)
