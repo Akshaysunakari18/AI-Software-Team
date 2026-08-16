@@ -13,42 +13,69 @@ class TestingAgent:
             temperature=0
         )
 
-    def generate_tests(self, code, filename):
+    def generate_tests(self, project):
 
-        module_name = Path(filename).stem
+        project_text = ""
+
+        for filename, code in project.items():
+
+            project_text += f"""
+==============================
+FILE: {filename}
+==============================
+
+{code}
+
+"""
+
+        # Find Python source files
+        python_files = [
+            Path(filename).stem
+            for filename in project.keys()
+            if filename.endswith(".py")
+        ]
+
+        imports = ""
+
+        for module in python_files:
+            imports += f"from workspace.{module} import *\n"
 
         prompt = f"""
 You are a professional Python testing engineer.
 
-SOURCE FILE:
-workspace/{filename}
+Here is the Python project:
 
-SOURCE CODE:
-{code}
+{project_text}
 
-Create complete pytest test cases for this code.
+Create pytest tests for this project.
 
-IMPORTANT:
-1. Import the functions from the source file using:
-   from workspace.{module_name} import function_name
-2. Test every function.
-3. Test normal cases.
-4. Test edge cases.
-5. Test division by zero if a divide function exists.
-6. If divide by zero is supposed to raise ValueError, use:
-   with pytest.raises(ValueError):
-7. Return ONLY valid Python pytest code.
-8. Do not use markdown.
-9. Do not provide explanations.
-10. Make sure every function used by the tests is imported.
+IMPORTANT RULES:
 
-Return only the complete pytest code.
+1. Test every important function.
+2. Test normal cases.
+3. Test important edge cases.
+4. The application files are located inside the workspace package.
+5. You MUST import the application functions.
+6. Use these imports at the beginning of the test file:
+
+{imports}
+
+7. If testing division by zero and the requirement says ValueError,
+   use pytest.raises(ValueError).
+8. Return ONLY valid Python pytest code.
+9. Do not use markdown.
+10. Do not use ```python.
+11. Do not provide explanations.
+12. The tests must be runnable directly with pytest.
+
+Return ONLY the complete pytest code.
 """
 
         response = self.llm.invoke(prompt)
 
         tests = response.content.strip()
 
+        # Remove markdown code fences
         if tests.startswith("```python"):
             tests = tests[len("```python"):].strip()
 
@@ -58,14 +85,28 @@ Return only the complete pytest code.
         if tests.endswith("```"):
             tests = tests[:-3].strip()
 
+        # Safety check:
+        # Make sure the generated tests actually import the project.
+        if python_files:
+
+            required_import = f"from workspace.{python_files[0]} import *"
+
+            if "from workspace." not in tests:
+
+                tests = (
+                    required_import
+                    + "\n\n"
+                    + tests
+                )
+
         return tests
 
-    def save_tests(self, tests, filename):
+    def save_tests(self, tests):
 
         tests_folder = Path("tests")
         tests_folder.mkdir(exist_ok=True)
 
-        test_file = tests_folder / f"test_{filename}"
+        test_file = tests_folder / "test_project.py"
 
         test_file.write_text(
             tests,

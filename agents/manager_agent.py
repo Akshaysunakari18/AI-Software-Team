@@ -9,66 +9,96 @@ class ManagerAgent:
         self.coding_agent = CodingAgent()
         self.testing_agent = TestingAgent()
 
+        self.max_attempts = 3
+
     def run(self, requirement):
 
         print("\n================================")
         print("        MANAGER AGENT")
         print("================================")
 
-        # --------------------------------
-        # STEP 1: CODING AGENT
-        # --------------------------------
+        # ==========================================
+        # CODING AGENT
+        # ==========================================
 
         print("\n[1] Sending requirement to Coding Agent...")
 
-        code = self.coding_agent.generate_code(
-            requirement
-        )
+        try:
 
-        self.coding_agent.save_code(
-            code,
-            "calculator.py"
-        )
+            project = self.coding_agent.generate_project(
+                requirement
+            )
 
-        print("[✓] Coding Agent completed the code.")
+            saved_files = self.coding_agent.save_project(
+                project
+            )
 
-        # --------------------------------
-        # STEP 2: TESTING LOOP
-        # --------------------------------
+            print("[✓] Coding Agent completed the project.")
 
-        max_attempts = 5
+            print("\nGenerated files:")
 
-        for attempt in range(1, max_attempts + 1):
+            for file in saved_files:
+                print("   ", file)
 
+        except Exception as e:
+
+            print("\n❌ Coding Agent failed:")
+            print(e)
+
+            return {
+                "success": False,
+                "project": None
+            }
+
+        # ==========================================
+        # TESTING + FIX LOOP
+        # ==========================================
+
+        for attempt in range(1, self.max_attempts + 1):
+
+            print("\n================================")
             print(
-                f"\n[2] Testing Agent - Attempt {attempt}"
+                f"      TESTING AGENT - ATTEMPT {attempt}"
             )
+            print("================================")
 
-            # Generate tests
-            tests = self.testing_agent.generate_tests(
-                code,
-                "calculator.py"
-            )
+            try:
 
-            # Save tests
-            test_file = self.testing_agent.save_tests(
-                tests,
-                "calculator.py"
-            )
+                tests = self.testing_agent.generate_tests(
+                    project["files"]
+                )
 
-            print(
-                f"[✓] Tests saved: {test_file}"
-            )
+                test_file = self.testing_agent.save_tests(
+                    tests
+                )
 
-            # Run pytest
+                print(
+                    f"[✓] Tests saved: {test_file}"
+                )
+
+            except Exception as e:
+
+                print("\n❌ Testing Agent failed:")
+                print(e)
+
+                return {
+                    "success": False,
+                    "project": project
+                }
+
+            # ==========================================
+            # RUN TESTS
+            # ==========================================
+
             result = self.testing_agent.run_tests()
 
             print("\n===== TEST RESULTS =====")
+
             print(result["output"])
 
-            # --------------------------------
+            # ==========================================
             # TESTS PASSED
-            # --------------------------------
+            # ==========================================
 
             if result["success"]:
 
@@ -78,56 +108,99 @@ class ManagerAgent:
 
                 return {
                     "success": True,
-                    "code": code,
-                    "test_output": result["output"]
+                    "project": project
                 }
 
-            # --------------------------------
+            # ==========================================
             # TESTS FAILED
-            # --------------------------------
+            # ==========================================
 
             print("\n❌ Tests failed.")
 
-            if attempt < max_attempts:
+            if attempt >= self.max_attempts:
+
+                print("\nMaximum attempts reached.")
 
                 print(
-                    "\n[Manager] Sending failure "
-                    "back to Coding Agent..."
+                    "\n❌ PROJECT REJECTED"
                 )
 
-                # Ask Coding Agent to fix code
-                code = self.coding_agent.fix_code(
-                    code,
-                    result["output"],
-                    requirement
+                return {
+                    "success": False,
+                    "project": project
+                }
+
+            # ==========================================
+            # SEND FAILURE BACK TO CODING AGENT
+            # ==========================================
+
+            print(
+                "\n[Manager] Sending failure "
+                "feedback to Coding Agent..."
+            )
+
+            failure_prompt = f"""
+Fix the Python project based on the failed tests.
+
+ORIGINAL REQUIREMENT:
+{requirement}
+
+CURRENT PROJECT:
+{project["files"]}
+
+TEST FAILURE:
+{result["output"]}
+
+Create the corrected complete project.
+
+Return ONLY valid JSON in this format:
+
+{{
+    "files": {{
+        "filename.py": "complete corrected Python code"
+    }}
+}}
+
+Rules:
+
+1. Keep all necessary project files.
+2. Fix the actual cause of the test failure.
+3. Follow the original requirement.
+4. Do not return tests.
+5. Return ONLY JSON.
+"""
+
+            try:
+
+                project = self.coding_agent.generate_project(
+                    failure_prompt
                 )
 
-                # Save corrected code
-                self.coding_agent.save_code(
-                    code,
-                    "calculator.py"
+                saved_files = self.coding_agent.save_project(
+                    project
                 )
 
                 print(
-                    "[✓] Coding Agent fixed the code."
+                    "[✓] Coding Agent submitted "
+                    "a corrected project."
                 )
 
-            else:
+                print("\nUpdated files:")
 
-                print(
-                    "\n[Manager] Maximum attempts reached."
-                )
+                for file in saved_files:
+                    print("   ", file)
 
-        # --------------------------------
-        # PROJECT REJECTED
-        # --------------------------------
+            except Exception as e:
 
-        print("\n================================")
-        print("       ❌ PROJECT REJECTED")
-        print("================================")
+                print("\n❌ Coding Agent failed to fix project:")
+                print(e)
+
+                return {
+                    "success": False,
+                    "project": project
+                }
 
         return {
             "success": False,
-            "code": code,
-            "test_output": result["output"]
+            "project": project
         }
