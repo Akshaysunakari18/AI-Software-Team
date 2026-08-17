@@ -42,10 +42,6 @@ result = manager.run(requirement)
 
 if result["success"]:
 
-    print("\n================================")
-    print("       ✅ PROJECT APPROVED")
-    print("================================")
-
     print("\nSending approved project to GitHub Agent...")
 
     github_agent = GitHubAgent()
@@ -65,6 +61,7 @@ if result["success"]:
 
         print("\n❌ GitHub push failed.")
 
+
 # ==========================================
 # PROJECT REJECTED
 # ==========================================
@@ -82,6 +79,10 @@ else:
         "until the tests pass."
     )
 
+
+# ==========================================
+# FINISHED
+# ==========================================
 
 print("\n================================")
 print("          TEAM FINISHED")

@@ -9,5 +9,10 @@ def multiply(a, b):
 
 def divide(a, b):
     if b == 0:
-        raise ValueError('Cannot divide by zero')
+        return 'Error: Division by zero'
     return a / b
+
+def average(values):
+    if not values:
+        return 0.0
+    return sum(values) / len(values)
