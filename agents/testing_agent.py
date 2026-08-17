@@ -13,6 +13,10 @@ class TestingAgent:
             temperature=0
         )
 
+    # ==========================================
+    # GENERATE TESTS
+    # ==========================================
+
     def generate_tests(self, project):
 
         project_text = ""
@@ -28,68 +32,202 @@ FILE: {filename}
 
 """
 
-        # Find Python source files
+        # ==========================================
+        # FIND PYTHON PROJECT FILES
+        # ==========================================
+
         python_files = [
             Path(filename).stem
             for filename in project.keys()
             if filename.endswith(".py")
         ]
 
+        # ==========================================
+        # CREATE IMPORTS
+        # ==========================================
+
         imports = ""
 
         for module in python_files:
-            imports += f"from workspace.{module} import *\n"
+
+            imports += (
+                f"from workspace.{module} import *\n"
+            )
+
+        # ==========================================
+        # TESTING AGENT PROMPT
+        # ==========================================
 
         prompt = f"""
 You are a professional Python testing engineer.
 
-Here is the Python project:
+Your job is to create reliable pytest tests for the
+Python project provided below.
+
+PROJECT:
 
 {project_text}
 
-Create pytest tests for this project.
+=========================================
+TESTING RULES
+=========================================
 
-IMPORTANT RULES:
+1. Test every important function and class.
 
-1. Test every important function.
-2. Test normal cases.
+2. Test normal/valid inputs.
+
 3. Test important edge cases.
-4. The application files are located inside the workspace package.
-5. You MUST import the application functions.
-6. Use these imports at the beginning of the test file:
+
+4. Test empty collections where appropriate.
+
+5. Test boundary cases where appropriate.
+
+6. The application files are located inside
+   the workspace package.
+
+7. You MUST import the application code.
+
+Use these imports:
 
 {imports}
 
-7. If testing division by zero and the requirement says ValueError,
-   use pytest.raises(ValueError).
-8. Return ONLY valid Python pytest code.
-9. Do not use markdown.
-10. Do not use ```python.
-11. Do not provide explanations.
-12. The tests must be runnable directly with pytest.
+8. If you use pytest.raises(), you MUST include:
 
-Return ONLY the complete pytest code.
+import pytest
+
+9. NEVER assume a specific exception type unless
+   the ORIGINAL USER REQUIREMENT explicitly
+   specifies that exception type.
+
+10. Do NOT automatically assume invalid input
+    must raise ValueError.
+
+11. Do NOT automatically assume invalid input
+    must raise TypeError.
+
+12. Do NOT invent validation requirements that
+    are not present in the user's requirement.
+
+13. If the requirement does not specify what
+    should happen for an invalid input, do not
+    create a test requiring a specific exception.
+
+14. Tests must reflect the ORIGINAL USER REQUIREMENT.
+
+15. Calculate ALL expected numeric values yourself.
+
+16. NEVER guess expected numeric values.
+
+17. For an average, calculate:
+
+    sum(values) / number_of_values
+
+18. Example:
+
+    Values = 85, 92, 78
+
+    Sum = 85 + 92 + 78
+        = 255
+
+    Average = 255 / 3
+            = 85.0
+
+    Therefore:
+
+    assert average == 85.0
+
+    NOT:
+
+    assert average == 85.33333333333333
+
+19. Verify arithmetic before creating assertions.
+
+20. Do NOT modify correct application behavior
+    simply to satisfy an incorrect expected value.
+
+21. Do not create tests for functionality that
+    was not requested by the user.
+
+22. Keep the test suite focused on the actual
+    software requirement.
+
+23. Tests must be independent from each other.
+
+24. Tests must be runnable using:
+
+    python -m pytest -v
+
+25. Return ONLY valid Python pytest code.
+
+26. Do NOT use markdown.
+
+27. Do NOT use ```python.
+
+28. Do NOT provide explanations.
+
+29. Do NOT provide comments outside the Python code.
+
+30. Return the COMPLETE test file.
+
+=========================================
+
+Return ONLY the pytest code.
 """
+
+        # ==========================================
+        # CALL OLLAMA
+        # ==========================================
 
         response = self.llm.invoke(prompt)
 
         tests = response.content.strip()
 
-        # Remove markdown code fences
+        # ==========================================
+        # REMOVE MARKDOWN CODE FENCES
+        # ==========================================
+
         if tests.startswith("```python"):
-            tests = tests[len("```python"):].strip()
+
+            tests = tests[
+                len("```python"):
+            ].strip()
 
         if tests.startswith("```"):
+
             tests = tests[3:].strip()
 
         if tests.endswith("```"):
+
             tests = tests[:-3].strip()
 
-        # Safety check:
-        # Make sure the generated tests actually import the project.
+        # ==========================================
+        # SAFETY CHECK 1
+        # ENSURE PYTEST IMPORT
+        # ==========================================
+
+        if (
+            "pytest." in tests
+            or "pytest.raises" in tests
+        ):
+
+            if "import pytest" not in tests:
+
+                tests = (
+                    "import pytest\n\n"
+                    + tests
+                )
+
+        # ==========================================
+        # SAFETY CHECK 2
+        # ENSURE APPLICATION IMPORT
+        # ==========================================
+
         if python_files:
 
-            required_import = f"from workspace.{python_files[0]} import *"
+            required_import = (
+                f"from workspace.{python_files[0]} "
+                f"import *"
+            )
 
             if "from workspace." not in tests:
 
@@ -101,12 +239,22 @@ Return ONLY the complete pytest code.
 
         return tests
 
+    # ==========================================
+    # SAVE TESTS
+    # ==========================================
+
     def save_tests(self, tests):
 
         tests_folder = Path("tests")
-        tests_folder.mkdir(exist_ok=True)
 
-        test_file = tests_folder / "test_project.py"
+        tests_folder.mkdir(
+            exist_ok=True
+        )
+
+        test_file = (
+            tests_folder
+            / "test_project.py"
+        )
 
         test_file.write_text(
             tests,
@@ -114,6 +262,10 @@ Return ONLY the complete pytest code.
         )
 
         return test_file
+
+    # ==========================================
+    # RUN TESTS
+    # ==========================================
 
     def run_tests(self):
 
@@ -130,5 +282,8 @@ Return ONLY the complete pytest code.
 
         return {
             "success": result.returncode == 0,
-            "output": result.stdout + result.stderr
+            "output": (
+                result.stdout
+                + result.stderr
+            )
         }

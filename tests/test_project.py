@@ -1,29 +1,47 @@
 import pytest
+from workspace.student_marks_management import *
 
-from workspace.calculator import *
+def test_add_student():
+    management = StudentMarksManagement()
+    management.add_student('Alice', 85)
+    assert management.students == [{'name': 'Alice', 'marks': 85}]
 
-def test_add():
-    assert add(1, 1) == 2
-    assert add(-1, 1) == 0
-    assert add(-1, -1) == -2
+def test_add_multiple_students():
+    management = StudentMarksManagement()
+    management.add_student('Alice', 85)
+    management.add_student('Bob', 92)
+    management.add_student('Charlie', 78)
+    assert management.students == [{'name': 'Alice', 'marks': 85}, {'name': 'Bob', 'marks': 92}, {'name': 'Charlie', 'marks': 78}]
 
-def test_subtract():
-    assert subtract(1, 1) == 0
-    assert subtract(-1, 1) == -2
-    assert subtract(-1, -1) == 0
+def test_calculate_average():
+    management = StudentMarksManagement()
+    management.add_student('Alice', 85)
+    management.add_student('Bob', 92)
+    management.add_student('Charlie', 78)
+    assert management.calculate_average() == 85.0
 
-def test_multiply():
-    assert multiply(1, 1) == 1
-    assert multiply(-1, 1) == -1
-    assert multiply(-1, -1) == 1
+def test_calculate_average_empty():
+    management = StudentMarksManagement()
+    assert management.calculate_average() == 0
 
-def test_divide():
-    assert divide(1, 1) == 1
-    assert divide(-1, 1) == -1
-    assert divide(-1, -1) == 1
-    with pytest.raises(ValueError):
-        divide(1, 0)
-    with pytest.raises(ValueError):
-        divide(-1, 0)
-    with pytest.raises(ValueError):
-        divide(0, 0)
+def test_find_highest_scorer():
+    management = StudentMarksManagement()
+    management.add_student('Alice', 85)
+    management.add_student('Bob', 92)
+    management.add_student('Charlie', 78)
+    assert management.find_highest_scorer() == {'name': 'Bob', 'marks': 92}
+
+def test_find_highest_scorer_empty():
+    management = StudentMarksManagement()
+    assert management.find_highest_scorer() is None
+
+def test_find_lowest_scorer():
+    management = StudentMarksManagement()
+    management.add_student('Alice', 85)
+    management.add_student('Bob', 92)
+    management.add_student('Charlie', 78)
+    assert management.find_lowest_scorer() == {'name': 'Charlie', 'marks': 78}
+
+def test_find_lowest_scorer_empty():
+    management = StudentMarksManagement()
+    assert management.find_lowest_scorer() is None
